@@ -70,16 +70,16 @@ Para implementar este projeto, você precisará configurar o ambiente no Google 
 *(Sugestão: Adicione aqui screenshots da sua aplicação em funcionamento para enriquecer o README)*
 
 **Aba de Auditoria:**
-![Aba de Auditoria](./imgs/aba-auditoria)
+![Aba de Auditoria](./imgs/aba-auditoria.png)
 
 **Aba de Verificação:**
-![Aba de Verificacao](./imgs/aba-verificacao)
+![Aba de Verificacao](./imgs/aba-verificacao.png)
 
 **Aba de Divergência:**
-![Aba Divergencia](./imgs/aba-divergencia)
+![Aba Divergencia](./imgs/aba-divergencia.png)
 
 **Aba de Observação:**
-![Aba de Observacao](./imgs/aba-obs)
+![Aba de Observacao](./imgs/aba-obs.png)
 
 ## 👨‍💻 Autor
 
