@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditoria de Estoque</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom,#243CE0, #3364E0);
+      margin: 0;
+      padding: 0;
+      color: #333;
+      background-attachment: fixed;
+    }  
+
+    .tab-container {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      background: darkorange;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .tab {
+      padding: 14px 20px;
+      cursor: pointer;
+      background-color: transparent;
+      border: none;
+      outline: none;
+      transition: all 0.2s ease;
+      font-size: 15px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab.active {
+      color: #007BFF;
+      font-weight: 500;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: #007BFF;
+      transition: transform 0.3s ease;
+    }
+
+    .tab:hover {
+      background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .tab-content {
+      display: none;
+      background: linear-gradient(to bottom, #0000aa, #fffff);
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      width: 50%;
+      margin: auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Nova regra específica para o formulário de divergência */
+    .form-divergencia {
+      display: none !important;
+    }
+    
+    /* Apenas mostra quando a aba divergencia estiver ativa */
+    .tab-content.active#divergencia .form-divergencia {
+      display: block !important;
+    }
+
+    /* Garantir que os elementos do formulário na aba divergência sejam sempre clicáveis */
+    #divergencia input,
+    #divergencia select,
+    #divergencia button {
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: 100 !important;
+    }
+    
+    /* Garantir que o select de lista de divergências seja visível */
+    #divergencia #listaDiv {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #444;
+      font-weight: 500;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-around;
+      gap: 20px;
+      padding: 15px 0;
+      position: absolute;    
+      left: 30px;
+      right: 30px;  
+    }
+
+    .section {
+      flex: 1;
+      min-width: 300px;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid #f0f0f0;
+    }
+
+    /* Estilo para o novo seletor de endereços com autocomplete */
+    .endereco-selector {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .endereco-selector input {
+      width: 95%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background-color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .endereco-selector input:focus {
+      border-color: #007BFF;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      outline: none;
+    }
+
+    .endereco-lista {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 250px;
+      overflow-y: auto;
+      background-color: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 0 0 6px 6px;
+      z-index: 100;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+
+    .endereco-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .endereco-item:hover, .endereco-item.active {
+      background-color: #f5f9ff;
+      color: #007BFF;
+    }
+
+    .endereco-item.active {
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: #007BFF;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      outline: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+      background-color: #ffffff;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      font-weight: 500;
+      color: #555;
+    }
+
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    /* Estilo para a linha vermelha na tabela de mercadorias */
+    .linha-vermelha td {
+      color: #dc3545;
+      background-color: rgba(220, 53, 69, 0.05);
+    }
+    
+    .linha-vermelha:hover td {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    /* Estilo para linha verde (contagem completa) */
+    .linha-verde td {
+      color: #ffffff;
+      background-color: green;
+    }
+    
+    .linha-verde:hover td {
+      background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .btn-adicionar {
+      background-color: #007BFF;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-adicionar:hover {
+      background-color: #0069d9;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-adicionar span {
+      font-size: 18px;
+      margin-right: 5px;
+      line-height: 1;
+    }
+
+    .btn-salvar {
+      background-color: #28a745;
+      color: white;
+      width: 100%;
+    }
+
+    .btn-salvar:hover {
+      background-color: #218838;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .remove-btn {
+      background-color: #dc3545;
+      color: white;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .remove-btn:hover {
+      background-color: #c82333;
+    }
+
+    .form-divergencia {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 25px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-divergencia h2 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .form-col {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .form-group input, .form-group select {
+      width: 90%;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: #007BFF;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      outline: none;
+    }
+
+    .form-group select {
+      appearance: none;
+      background: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 15l-4.243-4.243 1.415-1.414L12 12.172l2.828-2.829 1.415 1.414z" fill="rgba(0,0,0,.4)"/></svg>') no-repeat right 10px center;
+      background-size: 20px;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    .form-group select:hover {
+      border-color: #b0b0b0;
+    }
+
+    .form-divergencia .btn-salvar {
+      background-color: #007BFF;
+      color: white;
+      width: 100%;
+      font-size: 15px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .form-divergencia .btn-salvar:hover {
+      background-color: #0069d9;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    #mensagemRetorno {
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .mensagem-sucesso {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .mensagem-erro {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .campo-vazio {
+      border-color: #dc3545 !important;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+    }
+
+    /* Estilos para o modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      overflow: auto;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: auto;
+      width: 90%;
+      max-width: 500px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      position: relative;
+      padding: 20px;
+      animation: modalFadeIn 0.3s;
+    }
+
+    @keyframes modalFadeIn {
+      from {opacity: 0; transform: translateY(-30px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      color: #333;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .close {
+      position: absolute;
+      right: 20px;
+      top: 15px;
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .close:hover {
+      color: #333;
+    }
+
+    .modal .form-group {
+      margin-bottom: 15px;
+    }
+
+    .modal label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .modal input:focus {
+      border-color: #007BFF;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      outline: none;
+    }
+
+    .modal button {
+      padding: 12px 15px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .modal button:hover {
+      background-color: #0069d9;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .section {
+        min-width: 100%;
+      }
+    }
+
+    .obs-linha{
+      background-color: white;
+      border-radius: 8px;
+      padding: inherit;
+    }
+
+    .obs-linha input{
+      display: flex;
+      width: 95%;
+    }
+
+    .btn-obs {
+      background-color: #007BFF;
+      color: white;
+    }
+   
+  </style>
+</head>
+
+<body>
+
+  <div class="tab-container">
+    <button class="tab active" onclick="openTab(event, 'auditoria')" style="font-weight: bold; font-size: 20px;">Auditoria</button>
+    <button class="tab" onclick="openTab(event, 'verificacao')"style="font-weight: bold; font-size: 20px;">Verificação</button>
+    <button class="tab" onclick="openTab(event, 'divergencia')" style="font-weight: bold; font-size: 20px;">Divergência</button>
+    <button class="tab" onclick="openTab(event, 'observacao')" style="font-weight: bold; font-size: 20px;">Observação</button> 
+  </div>
+
+  <!-- Conteúdo das abas -->
+  <div id="auditoria" class="tab-content active">   
+    <div class="container">
+      <div class="section">
+        <h3>Bipe os Códigos</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="codigo" placeholder="Digite o código da mercadoria" onkeypress="buscarCodigo(event)" style="flex: 1;">                  
+          </button>
+        </div>
+        <h3>Mercadorias Bipadas</h3>
+        <table>
+          <thead>
+            <tr><th>CF</th><th>Código</th><th>Final</th><th>Endereço</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="mercadoriasLista"></tbody>
+        </table>
+        <div style="display: flex; gap: 10px;">
+          <button id="btnSalvar" onclick="salvarInsercoes()">Salvar Auditoria</button>       
+        </div>
+      </div>
+
+      <!-- Seção: Endereços (esquerda) -->
+      <div class="section">
+        <h3>Endereços</h3>
+        <!-- Novo seletor de endereços com autocomplete -->
+        <div class="endereco-selector">
+          <input type="text" id="enderecoInput" placeholder="Digite ou selecione o endereço" autocomplete="off" 
+                 oninput="filtrarEnderecos(this.value)" onfocus="mostrarListaEnderecos('auditoria')">
+          <div id="enderecosLista" class="endereco-lista"></div>
+        </div>
+        <h3>CFs do Endereço</h3>
+        <table>
+          <thead>
+            <tr><th>QTD</th><th>QTD Auditada</th><th>CF</th><th>Descrição</th></tr>
+          </thead>
+          <tbody id="listaCFs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parte da Aba Verificação -->
+  <div id="verificacao" class="tab-content">   
+    <div class="endereco-selector" style="max-width: 500px; margin: 0 auto 20px auto;">
+      <label for="enderecoVerificacao" style="display: block; margin-bottom: 8px; font-weight: 500; color: white;">Digite ou selecione o Endereço:</label>
+      <input type="text" id="enderecoVerificacao" placeholder="Digite ou selecione o endereço" autocomplete="off" 
+             oninput="filtrarEnderecosVerificacao(this.value)" onfocus="mostrarListaEnderecos('verificacao')">
+      <div id="enderecosVerificacaoLista" class="endereco-lista"></div>
+    </div>
+
+    <table id="verificacaoTable" border="1" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>Código Produto</th>
+          <th>CF</th>
+          <th>Final</th>
+          <th>Descrição</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Linhas dinâmicas vão aqui -->
+      </tbody>
+    </table>
+  </div>
+
+  <div id="observacao" class="tab-content">
+    <div class="obs-linha">
+    <h2>Informe o produto</h2>    
+      <div id="obs-texto">
+        <label for="codMercadoriaObs" tabindex="1"></label>
+        <input type="text" id="codMercadoriaObs" placeholder="Digite o código da mercadoria">
+        <label for="cfObs" tabindex="1"></label>
+        <input type="text" id="cfObs" placeholder="Digite o CF">
+        <label for="finalObs" tabindex="1"></label>
+        <input type="text" id="finalObs" placeholder="Digite o final">
+        <label for="descricaoObs" tabindex="1"></label>
+        <input type="text" id="descricaoObs" placeholder="Descricação do Produto">
+        <label for="enderecoObs" tabindex="1"></label>
+        <input type="text" id="enderecoObs" placeholder="Digite o Endereço">
+        <label for="motivoObs" tabindex="1"></label>
+        <input type="text" id="motivoObs" placeholder="Informe o Motivo">
+        <label for="dataObs" required tabindex="8"></label>
+        <input type="date" id="dataObs">    
+        <button type="button" class="btn-obs" onclick="salvarObservacao()" tabindex="7">Salvar</button>  
+      </div> 
+    </div>     
+
+  </div>
+
+  <!-- Aba Divergência -->
+  <div id="divergencia" class="tab-content">
+    <div class="form-divergencia">
+      <h2>Registrar Divergência</h2>
+      <form id="divergenciaForm">
+        <div class="form-row">
+          <div class="form-col">
+            <div class="form-group">
+              <label for="cdMercadoria">Código da Mercadoria</label>
+              <input type="text" id="cdMercadoria" placeholder="Digite o código da mercadoria" tabindex="1">
+            </div>
+            <div class="form-group">
+              <label for="cf">CF *</label>
+              <input type="text" id="cf" required placeholder="Digite o CF" tabindex="2">
+            </div>
+            <div class="form-group">
+              <label for="final">Final *</label>
+              <input type="text" id="final" required placeholder="Digite o final" tabindex="3">
+            </div>
+            <div class="form-group">
+              <label for="descricao">Descrição</label>
+              <input type="text" id="descricao" placeholder="Digite a descrição do item" tabindex="4">
+            </div>
+          </div>
+          <div class="form-col">
+            <div class="form-group">
+              <label for="endAuditado">Endereço Auditado *</label>
+              <input type="text" id="endAuditado" required placeholder="Digite o endereço auditado" tabindex="5">
+            </div>
+            <div class="form-group">
+              <label for="qtdAuditada">Quantidade Auditada *</label>
+              <input type="number" id="qtdAuditada" required placeholder="Digite a quantidade" min="1" tabindex="6">
+            </div>
+            <div class="form-group">
+              <label for="listaDiv">Lista de Divergências *</label>
+              <select id="listaDiv" required>
+                <option value="">Selecione uma lista...</option>
+                <option value="Alocado em Transitório">Alocado em Transitório</option>
+                <option value="Avaria">Avaria</option>
+                <option value="Danos por água">Danos por água</option>
+                <option value="Duplicidade de Etiqueta">Duplicidade de Etiqueta</option>
+                <option value="Embalagem Danificada">Embalagem Danificada</option>
+                <option value="Erro de Endereçamento">Erro de Endereçamento</option>
+                <option value="Erro de Processo">Erro de Processo</option>
+                <option value="Etiqueta Danificada">Etiqueta Danificada</option>
+                <option value="Etiqueta Divergente">Etiqueta Divergente</option>
+                <option value="Etiqueta duplicada">Etiqueta duplicada</option>
+                <option value="Falta no Endereço">Falta no Endereço</option>
+                <option value="Furto">Furto</option>
+                <option value="Item setado">Item setado</option>
+                <option value="Lacre Rompido">Lacre Rompido</option>
+                <option value="NL encontrado">NL encontrado</option>
+                <option value="Não alocado no estoque">Não alocado no estoque</option>
+                <option value="Queda">Queda</option>
+                <option value="Sem Etiqueta">Sem Etiqueta</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="data">Data *</label>
+              <input type="date" id="data" required tabindex="8">
+            </div>
+          </div>
+        </div>
+        <div id="mensagemRetorno"></div>
+        <button type="button" class="btn-salvar" onclick="salvarDivergencia()" tabindex="9">
+          <span class="save-icon">📋</span> Salvar Divergência
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Novo Registro -->
+  <div id="novoRegistroModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fecharModal()">&times;</span>
+      <h2>Adicionar Novo Registro</h2>
+
+      <div class="form-group">
+        <label for="novoCodigo">Código da Mercadoria:</label>
+        <input type="text" id="novoCodigo" placeholder="Digite o código">
+      </div>
+
+      <div class="form-group">
+        <label for="novoCF">CF:</label>
+        <input type="text" id="novoCF" placeholder="Digite o CF">
+      </div>
+
+      <div class="form-group">
+        <label for="novoFinal">Final:</label>
+        <input type="text" id="novoFinal" placeholder="Digite o Final">
+      </div>
+
+      <div class="form-group">
+        <label for="novoDescricao">Descrição:</label>
+        <input type="text" id="novoDescricao" placeholder="Digite a descrição">
+      </div>
+
+      <div class="form-group">
+        <label for="novoEndereco">Endereço:</label>
+        <input type="text" id="novoEndereco" placeholder="Digite o endereço">
+      </div>
+
+      <button id="btnSalvarNovo" onclick="salvarNovoRegistro()">Salvar</button>
+    </div>
+  </div>
+
+  
+  <script>
+
+    // Define dadosBanco como propriedade global do window para garantir acesso consistente
+    window.dadosBanco = JSON.parse('<?= dadosBanco ?>');
+    window.todosEnderecos = JSON.parse('<?= todosEnderecos ?>');
+    console.log("Dados carregado com", window.dadosBanco ? window.dadosBanco.length : 0, "linhas");
+    
+    // Inicialização de variáveis globais
+    let enderecoAtual = '';
+    let enderecoVerificacaoAtual = '';
+    let codigosInseridos = [];
+    
+    // Função para verificar se um item deve ser contado na auditoria
+    function itemDeveSerContado(codigoItem) {
+      console.log("Verificando se item deve ser contado:", codigoItem);
+      
+      // Converte para string para garantir comparação consistente
+      codigoItem = String(codigoItem);
+      
+      // Verifica na lista de códigos inseridos
+      const item = codigosInseridos.find(item => String(item.codigo) === codigoItem);
+      console.log("Item encontrado na lista de inseridos?", item ? "SIM" : "NÃO");
+      
+      if (!item) {
+        console.log("Item não está na lista de códigos inseridos:", codigoItem);
+        return false;
+      }
+      
+      // Se o item está marcado explicitamente como endereço errado, não conta
+      if (item.enderecoErrado === true) {
+        console.log("Item com endereço errado, não será contado:", codigoItem);
+        return false;
+      }
+
+      // Se o item veio de um "Fora do banco", não deve ser contado
+      if (item.cf === "Fora do Dados") {
+        console.log("Item está fora do Dados, não será contado:", codigoItem);
+        return false;
+      }
+      
+      // Verifica no Dados
+      const itemBanco = window.dadosBanco.find(row => String(row[1]) === codigoItem);
+      
+      // Se o item não existe no banco, verificar:
+      // 1. se ele foi inserido manualmente (caso em que já tem um CF definido)
+      // 2. se está marcado para contar (enderecoErrado === false)
+      if (!itemBanco) {
+        console.log("Item não encontrado no banco, mas está na lista de inseridos.");
+        
+        // Para itens inseridos com CF válido e não marcados como endereço errado,
+        // contamos mesmo se não estão no banco (podem ser recém-adicionados)
+        if (item.cf !== "Fora do Dados" && item.enderecoErrado === false) {
+          console.log("Item será contado mesmo não estando no banco, pois possui CF válido:", item.cf);
+          return true;
+        }
+        
+        return false;
+      }
+      
+      // Se chegou aqui, o item existe no Dados, então verificamos o endereço
+      const endereco = itemBanco[4];
+      const enderecoCorreto = endereco === enderecoAtual;
+      console.log("Endereço do item:", endereco, "Endereço atual:", enderecoAtual, "Endereço correto?", enderecoCorreto);
+      
+      // Se o endereço no banco for diferente do atual, não conta
+      // independentemente do que está marcado na lista de inseridos
+      if (!enderecoCorreto) {
+        console.log("Endereço no Dados não corresponde ao endereço atual, não será contado.");
+        return false;
+      }
+      
+      // Se chegou até aqui, o item deve ser contado
+      console.log("Item SERÁ contado na auditoria:", codigoItem);
+      return true;
+    }
+
+    function openTab(event, tabId) {
+      console.log("Abrindo aba:", tabId);
+      
+      // 1. Esconde todas as abas e remove classes active
+      var contents = document.querySelectorAll('.tab-content');
+      contents.forEach(function(content) {
+        content.classList.remove('active');
+        content.style.display = 'none';
+      });
+
+      var tabs = document.querySelectorAll('.tab');
+      tabs.forEach(function(tab) {
+        tab.classList.remove('active');
+      });
+
+      // 2. Mostra a aba selecionada e adiciona classe active
+      const tabElement = document.getElementById(tabId);
+      tabElement.classList.add('active');
+      tabElement.style.display = 'block';
+      
+      event.currentTarget.classList.add('active');
+      
+      // 3. Ações específicas por aba
+      if (tabId === 'divergencia') {
+        console.log("Carregando interface da aba Divergência");
+        
+        // Carregar listas e garantir que o formulário esteja visível
+        carregarListas();
+        
+        // Aplicar foco ao primeiro campo depois de garantir visibilidade
+        setTimeout(() => {
+          const cdMercadoria = document.getElementById('cdMercadoria');
+          if (cdMercadoria) {
+            cdMercadoria.focus();
+            console.log("Foco aplicado ao campo de código da mercadoria");
+          }
+        }, 300);
+      }
+    }
+
+    function mostrarOpcoes(dropdownId) {
+      document.getElementById(dropdownId).style.display = 'block';
+    }
+
+    function carregarEnderecos() {
+      console.log("Carregando endereços fixos do estoque");
+      window.enderecosList = [...new Set(window.todosEnderecos || [])];
+    }
+
+    function carregarEnderecosVerificacao() {
+      // Usa a mesma lista carregada para auditoria
+      if (!window.enderecosList) {
+        carregarEnderecos();
+      }
+    }
+
+    function mostrarListaEnderecos(tipo) {
+      const listaId = tipo === 'auditoria' ? 'enderecosLista' : 'enderecosVerificacaoLista';
+      document.getElementById(listaId).style.display = 'block';
+      if (tipo === 'auditoria') {
+        filtrarEnderecos(document.getElementById('enderecoInput').value);
+      } else {
+        filtrarEnderecosVerificacao(document.getElementById('enderecoVerificacao').value);
+      }
+    }
+
+    function filtrarEnderecos(texto) {
+      const listaEl = document.getElementById('enderecosLista');
+      listaEl.innerHTML = '';
+      listaEl.style.display = 'block';
+      
+      if (!window.enderecosList) {
+        carregarEnderecos();
+      }
+      
+      if (!window.enderecosList || window.enderecosList.length === 0) {
+        listaEl.innerHTML = '<div class="endereco-item">Nenhum endereço encontrado</div>';
+        return;
+      }
+      
+      const enderecosFiltrados = window.enderecosList.filter(endereco => 
+        endereco.toLowerCase().includes(texto.toLowerCase())
+      );
+      
+      if (enderecosFiltrados.length === 0) {
+        listaEl.innerHTML = '<div class="endereco-item">Nenhum endereço encontrado</div>';
+        return;
+      }
+      
+      enderecosFiltrados.forEach(endereco => {
+        const item = document.createElement('div');
+        item.className = 'endereco-item';
+        item.textContent = endereco;
+        item.onclick = function() {
+          selecionarEndereco(endereco);
+          listaEl.style.display = 'none';
+        };
+        listaEl.appendChild(item);
+      });
+    }
+
+    function filtrarEnderecosVerificacao(texto) {
+      const listaEl = document.getElementById('enderecosVerificacaoLista');
+      listaEl.innerHTML = '';
+      listaEl.style.display = 'block';
+      
+      if (!window.enderecosList) {
+        carregarEnderecos();
+      }
+      
+      if (!window.enderecosList || window.enderecosList.length === 0) {
+        listaEl.innerHTML = '<div class="endereco-item">Nenhum endereço encontrado</div>';
+        return;
+      }
+      
+      const enderecosFiltrados = window.enderecosList.filter(endereco => 
+        endereco.toLowerCase().includes(texto.toLowerCase())
+      );
+      
+      if (enderecosFiltrados.length === 0) {
+        listaEl.innerHTML = '<div class="endereco-item">Nenhum endereço encontrado</div>';
+        return;
+      }
+      
+      enderecosFiltrados.forEach(endereco => {
+        const item = document.createElement('div');
+        item.className = 'endereco-item';
+        item.textContent = endereco;
+        item.onclick = function() {
+          selecionarEnderecoVerificacao(endereco);
+          listaEl.style.display = 'none';
+        };
+        listaEl.appendChild(item);
+      });
+    }
+
+    function selecionarEndereco(valor) {
+      const input = document.getElementById("enderecoInput");
+      input.value = valor;
+      enderecoAtual = valor;
+      document.getElementById("enderecosLista").style.display = 'none';
+      
+      console.log("Endereço selecionado:", valor);
+      
+      // Carrega os CFs para o endereço selecionado
+      carregarCFs();
+    }
+
+    function selecionarEnderecoVerificacao(valor) {
+      const input = document.getElementById("enderecoVerificacao");
+      input.value = valor;
+      enderecoVerificacaoAtual = valor;
+      document.getElementById("enderecosVerificacaoLista").style.display = 'none';
+      carregarVerificacao();
+    }
+
+    function carregarCFs() {
+      const listaCFs = document.getElementById("listaCFs");
+      listaCFs.innerHTML = "";
+
+      if (!enderecoAtual) {
+        console.log("Nenhum endereço selecionado");
+        listaCFs.innerHTML = "<tr><td colspan='4'>Selecione um endereço primeiro</td></tr>";
+        return;
+      }
+
+      console.log("Carregando CFs para o endereço:", enderecoAtual);
+      console.log("Quantidade de itens no banco:", window.dadosBanco ? window.dadosBanco.length : "não definido");
+      console.log("Códigos inseridos:", codigosInseridos);
+
+      // Verifica se dadosBanco tem dados
+      if (!window.dadosBanco || window.dadosBanco.length <= 1) {
+        console.error("Dados do banco vazios ou insuficientes");
+        listaCFs.innerHTML = "<tr><td colspan='4'>Erro: Dados não disponíveis</td></tr>";
+        return;
+      }
+
+      // Mapeamento dos CFs - usando somente os dados locais
+      const cfsMap = {};
+      const debugInfo = { countTotal: 0, countAuditados: 0, itensVerificados: [] };
+      
+      console.log("Iniciando processamento de itens para o endereço:", enderecoAtual);
+      
+      // Processa os itens do Dados para este endereço
+      window.dadosBanco.slice(1).forEach(([cf, codigo, final, descricao, end]) => {
+        if (end === enderecoAtual && cf) {
+          if (!cfsMap[cf]) {
+            cfsMap[cf] = { qtd: 0, auditados: 0, nome: descricao, itens: [] };
+          }
+          cfsMap[cf].qtd++;
+          debugInfo.countTotal++;
+          
+          // Adiciona informação de debug
+          const isInserido = codigosInseridos.some(item => String(item.codigo) === String(codigo));
+          const isEnderecoCorreto = codigosInseridos.some(item => 
+            String(item.codigo) === String(codigo) && !item.enderecoErrado
+          );
+          
+          const itemInfo = {
+            codigo,
+            inserido: isInserido,
+            enderecoCorreto: isEnderecoCorreto
+          };
+          debugInfo.itensVerificados.push(itemInfo);
+          cfsMap[cf].itens.push(codigo);
+          
+          console.log(`Item ${codigo}: CF=${cf}, Inserido=${isInserido}, EnderecoCorreto=${isEnderecoCorreto}`);
+          
+          // Verifica se está nos códigos inseridos localmente
+          // Apenas conta se o endereço for o mesmo que está sendo visualizado
+          if (itemDeveSerContado(codigo)) {
+            cfsMap[cf].auditados++;
+            debugInfo.countAuditados++;
+            console.log(`Item ${codigo} SERÁ contado na auditoria para o CF ${cf}`);
+          } else {
+            console.log(`Item ${codigo} NÃO será contado na auditoria para o CF ${cf}`);
+          }
+        }
+      });
+      
+      // Procurar CF recém-adicionado que ainda não conste na lista
+      // Isso é necessário porque um item recém-adicionado pode não ser encontrado
+      // na iteração do dadosBanco acima, mas precisamos contabilizá-lo
+      codigosInseridos.forEach(item => {
+        if (!item.enderecoErrado && item.cf !== "Fora do Dados") {
+          // Verificamos se o item já existe no cfsMap
+          let cfEncontrado = false;
+          
+          for (const cf in cfsMap) {
+            if (cf === item.cf) {
+              cfEncontrado = true;
+              
+              // Verificamos se o código está na lista de itens deste CF
+              const codigoJaContado = cfsMap[cf].itens.some(codigo => 
+                String(codigo) === String(item.codigo)
+              );
+              
+              // Se o código não estiver na lista, precisamos adicioná-lo
+              if (!codigoJaContado) {
+                console.log(`Adicionando item recém-inserido ${item.codigo} ao CF ${cf}`);
+                cfsMap[cf].itens.push(item.codigo);
+                
+                // Neste caso, como já foi verificado que o item não tem endereço errado,
+                // incrementamos a contagem de auditados
+                cfsMap[cf].auditados++;
+              }
+            }
+          }
+          
+          // Se o CF não existir no mapeamento, criamos uma nova entrada
+          if (!cfEncontrado) {
+            console.log(`Criando novo CF ${item.cf} para item recém-inserido ${item.codigo}`);
+            
+            // Pegamos a descrição do item do Dados se disponível
+            const itemBanco = window.dadosBanco.find(row => String(row[1]) === String(item.codigo));
+            const descricao = itemBanco ? itemBanco[3] : "Item recém-adicionado";
+            
+            cfsMap[item.cf] = {
+              qtd: 1,      // Assume que só existe 1 item deste CF neste endereço
+              auditados: 1, // Este item já está na lista, então conta como auditado
+              nome: descricao,
+              itens: [item.codigo]
+            };
+          }
+        }
+      });
+      
+      console.log("Mapeamento de CFs final:", cfsMap);
+      console.log("Informações de debug:", debugInfo);
+      
+      // Verifica se encontrou algum CF para o endereço
+      if (Object.keys(cfsMap).length === 0) {
+        console.log("Nenhum CF encontrado para o endereço:", enderecoAtual);
+        listaCFs.innerHTML = "<tr><td colspan='4'>Nenhum CF encontrado para este endereço</td></tr>";
+        return;
+      }
+      
+      // Converte o objeto cfsMap em um array para poder ordenar
+      const cfsSorted = Object.entries(cfsMap)
+        .map(([cf, data]) => ({
+          cf,
+          qtd: data.qtd,
+          auditados: data.auditados,
+          nome: data.nome
+        }))
+        .sort((a, b) => b.qtd - a.qtd); // Ordena do maior para o menor
+      
+      // Renderiza a tabela de CFs
+      let html = '';
+      cfsSorted.forEach(item => {
+        const isCompleto = item.qtd === item.auditados;
+        const row = `
+          <tr class="${isCompleto ? 'linha-verde' : ''}">
+            <td>${item.qtd}</td>
+            <td>${item.auditados}</td>
+            <td>${item.cf}</td>
+            <td>${item.nome}</td>
+          </tr>
+        `;
+        listaCFs.insertAdjacentHTML('beforeend', row);
+      });
+      
+      console.log("Tabela de CFs atualizada com sucesso.");
+    }
+
+function carregarVerificacao() {
+  const tbody = document.getElementById("verificacaoTable").querySelector("tbody");
+  tbody.innerHTML = ""; // Limpa antes de listar
+
+  if (!enderecoVerificacaoAtual) return;
+
+  // Corrige o mapeamento: [cf, codigo, final, descricao, endereco]
+  const produtosEndereco = window.dadosBanco
+    .slice(1) // Ignora o cabeçalho
+    .filter(row => row[4] === enderecoVerificacaoAtual)
+    .map(([cf, codigo, final, descricao]) => ({ cf, codigo, final, descricao }));
+
+  produtosEndereco.forEach(produto => {
+    const auditado = codigosInseridos.some(item => item.codigo === produto.codigo);
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${produto.codigo}</td>
+      <td>${produto.cf}</td>
+      <td>${produto.final}</td>
+      <td>${produto.descricao}</td>
+      <td style="color: ${auditado ? 'green' : 'red'}; font-weight: bold;">
+        ${auditado ? 'Auditado' : 'Faltando'}
+      </td>
+    `;
+
+    tbody.appendChild(row);
+  });
+}
+
+
+    function buscarCodigo(event) {
+      if (event.key !== "Enter") return;
+
+      const codigoInput = document.getElementById("codigo");
+      const codigo = codigoInput.value.trim();
+
+      if (!codigo || !enderecoAtual) {
+        alert("Digite o código e selecione um endereço.");
+        return;
+      }
+
+      // Normaliza o código para comparação (remove espaços e converte para string)
+      const codigoNormalizado = String(codigo).trim();
+      
+      // Verifica se o código já foi inserido (usando a versão normalizada)
+      if (codigosInseridos.some(item => String(item.codigo).trim() === codigoNormalizado)) {     
+    
+        alert("Código já inserido.");
+        codigoInput.value = "";
+        codigoInput.focus();
+        return;
+      }
+
+      // Certifique-se de que dadosBanco está definido
+      if (!window.dadosBanco) {
+        alert("Erro: Dados não carregado corretamente.");
+        return;
+      }
+
+      console.log("Procurando código:", codigoNormalizado);
+      console.log("Dados atual:", window.dadosBanco);
+
+      // Procura a mercadoria no Dados atualizado (usando a versão normalizada)
+      const mercadoria = window.dadosBanco.find(row => String(row[1]).trim() === codigoNormalizado);
+      
+      if (mercadoria) {
+        console.log("Mercadoria encontrada:", mercadoria);
+      } else {
+        console.log("Mercadoria não encontrada para o código:", codigoNormalizado);
+      }
+
+      const tabela = document.getElementById("mercadoriasLista");
+      const row = document.createElement("tr");
+
+      if (mercadoria) {
+        const [cf, cod, final, descricao, endereco] = mercadoria;
+
+        row.innerHTML = `
+          <td>${cf}</td>
+          <td>${cod}</td>
+          <td>${final}</td>
+          <td>${endereco}</td>
+          <td><button class="remove-btn" onclick="removerItem('${cod}', this)">Remover</button></td>
+        `;
+
+        // Verifica se o endereço da mercadoria é diferente do endereço selecionado
+        const enderecoErrado = (endereco !== enderecoAtual);
+        
+        if (enderecoErrado) {
+          row.classList.add("linha-vermelha");
+          row.title = "Este item está em um endereço diferente do selecionado";
+        }
+
+        // Adiciona à lista de códigos inseridos (usando o código normalizado)
+        codigosInseridos.unshift({ 
+          codigo: codigoNormalizado, 
+          cf: cf, 
+          enderecoErrado: enderecoErrado 
+        });
+      } else {
+        row.innerHTML = `
+          <td>${codigoNormalizado}</td>
+          <td>Fora do Dados</td>
+          <td>-</td>
+          <td>-</td>
+          <td>
+            <button class="remove-btn" onclick="removerItem('${codigoNormalizado}', this)">Remover</button>
+            <button onclick="abrirModalAdicionar('${codigoNormalizado}')">Adicionar</button>
+          </td>
+        `;
+        row.classList.add("linha-vermelha");
+        row.classList.add("fora-banco");
+        row.title = "Este item não foi encontrado no Dados";
+
+        codigosInseridos.unshift({ 
+          codigo: codigoNormalizado, 
+          cf: "Fora do Dados", 
+          enderecoErrado: true 
+        });
+      }
+
+      tabela.prepend(row);
+      carregarCFs();
+
+      codigoInput.value = "";
+      codigoInput.focus();
+    }
+
+    function removerItem(codigo, button) {
+      // Encontra o índice do item a ser removido
+      const index = codigosInseridos.findIndex(item => String(item.codigo) === String(codigo));
+      
+      if (index !== -1) {
+        // Remove da lista
+        codigosInseridos.splice(index, 1);
+        console.log("Item removido da lista. Total restante:", codigosInseridos.length);
+        
+        // Remove da tabela
+        button.closest("tr").remove();
+        
+        // Atualiza a contagem
+        carregarCFs();
+      }
+    }
+    
+    // Função para remover item pelo código sem precisar do botão
+    function removerItemPorCodigo(codigo) {
+      // Remove da estrutura de dados
+      codigosInseridos = codigosInseridos.filter(item => String(item.codigo) !== String(codigo));
+      
+      // Remove da tabela visualmente
+      const tabela = document.getElementById("mercadoriasLista");
+      const linhas = tabela.querySelectorAll("tr");
+      
+      for (let i = 0; i < linhas.length; i++) {
+        const colunas = linhas[i].querySelectorAll("td");
+        if (colunas.length > 0 && String(colunas[0].textContent) === String(codigo)) {
+          console.log("Removendo linha com código:", codigo);
+          linhas[i].remove();
+          break;
+        }
+      }
+      
+      // Atualiza a contagem
+      carregarCFs();
+    }
+    
+    // Função para salvar um código individual na Auditoria (uso opcional)
+    function salvarCodigoNaBase(codigo) {
+      if (!enderecoAtual) {
+        console.error("Endereço atual não definido, não é possível salvar na base");
+        return;
+      }
+      
+      console.log("Salvando código na Auditoria:", codigo, "Endereço:", enderecoAtual);
+      
+      google.script.run
+        .withSuccessHandler((resposta) => {
+          console.log("Código salvo na Auditoria com sucesso");
+        })
+        .withFailureHandler((erro) => {
+          console.error("Erro ao salvar código na Auditoria:", erro);
+        })
+        .registrarCodigoNaBase(codigo, enderecoAtual);
+    }
+
+    function salvarInsercoes() {      
+
+      // Verifica se há códigos fora do Dados
+      if (codigosInseridos.some(item => item.cf === "Fora do Dados")) {
+        alert("Remova os códigos fora do banco antes de salvar!");
+        return;
+      }
+      
+      // Verifica se há códigos com endereço errado
+      const itensComEnderecoErrado = codigosInseridos.filter(item => item.enderecoErrado);
+      if (itensComEnderecoErrado.length > 0) {
+        const confirmacao = confirm(
+          `Atenção: Existem ${itensComEnderecoErrado.length} código(s) em endereço diferente do atual.\n` +
+          `Estes itens NÃO serão contabilizados na contagem do endereço atual.\n\n` +
+          `Deseja continuar mesmo assim?`
+        );
+        
+        if (!confirmacao) {
+          return;
+        }
+      }
+
+      // Preparar os dados para enviar: código + endereço atual
+      let dadosParaSalvar = [];
+
+        if (codigosInseridos.length > 0) {
+          dadosParaSalvar = codigosInseridos.map(item => ({
+            codigo: item.codigo,
+            endereco: enderecoAtual
+          }));
+        } else {
+          // Mesmo sem códigos, enviamos o endereço para registrar contagem zerada
+          dadosParaSalvar = [{ codigo: "", endereco: enderecoAtual }];
+        }
+
+
+      console.log("Enviando dados para salvar:", dadosParaSalvar);
+
+      google.script.run
+        .withSuccessHandler((resposta) => {
+          console.log("Resposta do servidor:", resposta);
+          alert("Inserções salvas com sucesso!");
+          codigosInseridos = [];
+          document.getElementById("mercadoriasLista").innerHTML = "";
+          carregarCFs();
+        })
+        .withFailureHandler((erro) => {
+          console.error("Erro ao salvar inserções:", erro);
+          alert("Erro ao salvar inserções: " + (erro.message || erro.toString() || "Erro desconhecido"));
+        })
+        .salvarCodigosInseridos(dadosParaSalvar);
+    }
+
+    function abrirModalAdicionar(codigo) {
+      const modal = document.getElementById("novoRegistroModal");
+      document.getElementById("novoCodigo").value = codigo;
+      document.getElementById("novoEndereco").value = enderecoAtual;
+      modal.classList.add("show");
+    }
+
+    function fecharModal() {
+      const modal = document.getElementById('novoRegistroModal');
+      modal.classList.remove('show');
+    }
+
+    function salvarNovoRegistro() {
+      try {
+        console.log("Iniciando função salvarNovoRegistro");
+        const cf = document.getElementById("novoCF").value.trim();
+        const codigo = document.getElementById("novoCodigo").value.trim();
+        const final = document.getElementById("novoFinal").value.trim();
+        const descricao = document.getElementById("novoDescricao").value.trim();
+        const endereco = document.getElementById("novoEndereco").value.trim();
+
+        console.log("Valores obtidos dos campos:", {codigo, cf, final, descricao, endereco});
+
+        if (!cf || !codigo || !final || !descricao || !endereco) {
+          alert("Preencha todos os campos.");
+          return;
+        }
+
+        const novoRegistro = { cf, codigo, final, descricao, endereco };
+        
+        console.log("Enviando novo registro:", novoRegistro);
+        
+        // Desabilita o botão para evitar cliques múltiplos
+        const btnSalvar = document.getElementById("btnSalvarNovo");
+        btnSalvar.disabled = true;
+        btnSalvar.textContent = "Salvando...";
+
+        google.script.run
+          .withSuccessHandler((novosDados) => {
+            console.log("Resposta do servidor recebida com sucesso, processando dados...");
+            try {
+              // Atualiza o Dados local com os novos dados
+              window.dadosBanco = JSON.parse(novosDados);
+              console.log("Dados atualizado com", window.dadosBanco.length, "linhas");
+              
+              // Verificar se o item realmente foi adicionado ao Dados
+              const itemAdicionado = window.dadosBanco.some(row => 
+                String(row[1]) === String(codigo) && 
+                String(row[1]) === String(cf) && 
+                String(row[4]) === String(endereco)
+              );
+              
+              console.log("Item adicionado ao Dados?", itemAdicionado ? "SIM" : "NÃO");
+              
+              if (!itemAdicionado) {
+                console.error("ALERTA: Não foi possível encontrar o item no banco após adição!");
+              }
+              
+              // Remover a linha vermelha do item que acabamos de adicionar
+              console.log("Removendo linha vermelha do código:", codigo);
+              removerItemPorCodigo(codigo);
+
+              // Fechar o modal
+              fecharModal();
+              
+              // Se o endereço do item adicionado for igual ao endereço atual, adiciona-o à lista
+              if (endereco === enderecoAtual) {
+                console.log("Item adicionado pertence ao endereço atual, adicionando à lista");
+                
+                // Adiciona o item à tabela de mercadorias com os dados corretos
+                const tabela = document.getElementById("mercadoriasLista");
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td>${codigo}</td>
+                  <td>${cf}</td>
+                  <td>${final}</td>
+                  <td>${endereco}</td>
+                  <td><button class="remove-btn" onclick="removerItem('${codigo}', this)">Remover</button></td>
+                `;
+                
+                // Adiciona à lista de códigos inseridos (sem marcar como endereço errado)
+                codigosInseridos.unshift({ 
+                  codigo: codigo, 
+                  cf: cf, 
+                  enderecoErrado: false
+                });
+                
+                console.log("Item adicionado à lista de códigos inseridos:", {
+                  codigo, cf, enderecoErrado: false
+                });
+                
+                // Adiciona à tabela
+                tabela.prepend(row);
+                
+                // Força atualização da contagem para refletir o novo item imediatamente
+                console.log("Atualizando contagem da tabela de CFs com o novo item...");
+                carregarCFs();
+              } else {
+                console.log("Item adicionado NÃO pertence ao endereço atual:", endereco);
+                alert("Item adicionado ao banco com sucesso, mas não será incluído na contagem atual pois o endereço não corresponde ao endereço selecionado.");
+                
+                // Mesmo para itens em outro endereço, precisamos atualizar para remover o item
+                // da lista de itens em vermelho
+                carregarCFs();
+              }
+              
+              // Recarrega as interfaces
+              carregarEnderecos();
+              carregarEnderecosVerificacao();
+              
+              alert("Registro adicionado com sucesso!");
+            } catch (erro) {
+              console.error("Erro ao processar resposta:", erro);
+              alert("Erro ao processar resposta: " + erro.message);
+            } finally {
+              // Reabilita o botão
+              btnSalvar.disabled = false;
+              btnSalvar.textContent = "Salvar";
+            }
+          })
+          .withFailureHandler((erro) => {
+            console.error("Erro retornado pelo servidor:", erro);
+            alert("Erro ao adicionar registro: " + (erro.message || erro.toString() || "Erro desconhecido"));
+            // Reabilita o botão
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = "Salvar";
+          })
+          .adicionarNovoRegistro(novoRegistro);
+        console.log("Chamada assíncrona iniciada");
+      } catch (erro) {
+        console.error("Erro inesperado na função salvarNovoRegistro:", erro);
+        alert("Erro inesperado: " + erro.message);
+      }
+    }
+
+    function carregarListas() {
+      console.log("Iniciando carregamento das listas...");
+      const selectLista = document.getElementById('listaDiv');
+      
+      // Verificar se o elemento existe
+      if (!selectLista) {
+        console.error("Elemento select #listaDiv não encontrado");
+        return;
+      }
+      
+      selectLista.innerHTML = '';
+      
+      // Lista de opções simplificada, sem categorias, ordenada alfabeticamente
+      const listaOpcoes = [
+        "Alocado em Transitório",
+        "Avaria",
+        "Danos por água",
+        "Duplicidade de Etiqueta",
+        "Embalagem Danificada",
+        "Erro de Endereçamento",
+        "Erro de Processo",
+        "Etiqueta Danificada",
+        "Etiqueta Divergente",
+        "Etiqueta duplicada",
+        "Falta no Endereço",
+        "Furto",
+        "Item setado",
+        "Lacre Rompido",
+        "NL encontrado",
+        "Não alocado no estoque",
+        "Queda",
+        "Sem Etiqueta"
+      ].sort();
+      
+      // Criar opção default primeiro
+      const optionDefault = document.createElement('option');
+      optionDefault.value = "";
+      optionDefault.textContent = "Selecione uma lista...";
+      selectLista.appendChild(optionDefault);
+      
+      // Adicionar cada opção ao select
+      listaOpcoes.forEach(lista => {
+        const option = document.createElement('option');
+        option.value = lista;
+        option.textContent = lista;
+        selectLista.appendChild(option);
+      });
+      
+      console.log("Listas de divergência carregadas:", listaOpcoes.length);
+      
+      // Verificar se o select está visível e interativo
+      setTimeout(() => {
+        if (selectLista) {
+          selectLista.style.opacity = '1';
+          selectLista.style.pointerEvents = 'auto';
+          
+          // Testar se é possível clicar
+          try {
+            selectLista.focus();
+            console.log("Foco aplicado ao campo de lista");
+          } catch (e) {
+            console.error("Erro ao aplicar foco:", e);
+          }
+        }
+      }, 300);
+    }
+
+    function salvarDivergencia() {
+      console.log("Iniciando salvar divergência...");
+      
+      // Limpar classes de erro anteriores
+      document.querySelectorAll('.campo-vazio').forEach(campo => {
+        campo.classList.remove('campo-vazio');
+      });
+      
+      // Obter valores dos campos na nova ordem
+      const cdMercadoria = document.getElementById('cdMercadoria').value.trim();
+      const cf = document.getElementById('cf').value.trim();
+      const final = document.getElementById('final').value.trim();
+      const descricao = document.getElementById('descricao').value.trim();
+      const endAuditado = document.getElementById('endAuditado').value.trim();
+      const qtdAuditada = document.getElementById('qtdAuditada').value.trim();
+      const listaDiv = document.getElementById('listaDiv').value.trim();
+      const data = document.getElementById('data').value;
+      
+      console.log("Valores obtidos dos campos:", {
+        cdMercadoria, cf, final, descricao, endAuditado, qtdAuditada, listaDiv, data
+      });
+      
+      const mensagemRetorno = document.getElementById('mensagemRetorno');
+      mensagemRetorno.className = '';
+      mensagemRetorno.textContent = '';
+
+      // Validar campos obrigatórios
+      let camposInvalidos = false;
+      const camposObrigatorios = [
+        { id: 'cf', valor: cf, nome: 'CF' },
+        { id: 'final', valor: final, nome: 'Final' },
+        { id: 'endAuditado', valor: endAuditado, nome: 'Endereço Auditado' },
+        { id: 'qtdAuditada', valor: qtdAuditada, nome: 'Quantidade Auditada' },
+        { id: 'listaDiv', valor: listaDiv, nome: 'Lista de Divergências' },
+        { id: 'data', valor: data, nome: 'Data' }
+      ];
+      
+      const camposFaltando = [];
+      
+      camposObrigatorios.forEach(campo => {
+        if (!campo.valor) {
+          document.getElementById(campo.id).classList.add('campo-vazio');
+          camposInvalidos = true;
+          camposFaltando.push(campo.nome);
+        }
+      });
+      
+      if (camposInvalidos) {
+        mensagemRetorno.textContent = `Preencha os campos obrigatórios: ${camposFaltando.join(', ')}`;
+        mensagemRetorno.classList.add('mensagem-erro');
+        return;
+      }
+
+      // Preparar dados para salvar
+      const dados = {
+        Lista: listaDiv,
+        CdMercadoria: cdMercadoria,
+        Descricao: descricao,
+        CF: cf,
+        Final: final,
+        EndeAud: endAuditado,
+        Data: data,
+        Qtd: qtdAuditada
+      };
+
+      // Desabilitar botão durante processamento
+      const btnSalvar = document.querySelector('.btn-salvar');
+      const textoOriginal = btnSalvar.innerHTML;
+      btnSalvar.disabled = true;
+      btnSalvar.innerHTML = '<span class="save-icon">⏳</span> Salvando...';
+      
+      console.log("Enviando dados para o servidor:", dados);
+
+      // Chamada ao servidor
+      google.script.run
+        .withSuccessHandler(function(resposta) {
+          console.log("Resposta de sucesso do servidor:", resposta);
+          mensagemRetorno.textContent = resposta;
+          mensagemRetorno.classList.add('mensagem-sucesso');
+          
+          // Limpar o formulário
+          document.getElementById('divergenciaForm').reset();
+          
+          // Definir a data atual
+          document.getElementById('data').value = new Date().toISOString().split('T')[0];
+          
+          // Reabilitar o botão
+          btnSalvar.disabled = false;
+          btnSalvar.innerHTML = textoOriginal;
+          
+          // Recarregar as listas
+          carregarListas();
+        })
+        .withFailureHandler(function(erro) {
+          console.error("Erro retornado pelo servidor:", erro);
+          mensagemRetorno.textContent = 'Erro: ' + (erro.message || erro);
+          mensagemRetorno.classList.add('mensagem-erro');
+          
+          // Reabilitar o botão
+          btnSalvar.disabled = false;
+          btnSalvar.innerHTML = textoOriginal;
+        })
+        .SalvarDivergencia(dados);
+    }
+
+    // Função para carregar os dados do banco na inicialização
+    function carregarDadosBanco() {
+      console.log("Inicializando dados do banco");
+      
+      // Verificar se window.dadosBanco está definido corretamente
+      if (!window.dadosBanco || !Array.isArray(window.dadosBanco) || window.dadosBanco.length === 0) {
+        console.error("ERRO: Dados do banco não foram carregados corretamente");
+        alert("Erro ao carregar dados. Por favor, recarregue a página.");
+        return;
+      }
+      
+      console.log("Dados do banco carregados com sucesso:", window.dadosBanco.length, "linhas");
+    }
+
+    // Modifique seu evento DOMContentLoaded para incluir a chamada para carregarListas
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("Iniciando carregamento da página");
+      
+      // Primeiro carregar os dados do banco
+      carregarDadosBanco();
+      
+      // Verificar se os dados foram carregados corretamente antes de prosseguir
+      if (window.dadosBanco && Array.isArray(window.dadosBanco) && window.dadosBanco.length > 0) {
+        console.log("Dados do banco verificados, prosseguindo com carregamento de interfaces");
+        // Agora carregar os componentes da interface que dependem dos dados
+        carregarEnderecos();
+        carregarEnderecosVerificacao();
+        carregarListas();
+      } else {
+        console.error("Não foi possível carregar interfaces dependentes devido a problemas com dados do banco");
+        alert("Erro ao carregar dados do banco. Algumas funcionalidades podem não estar disponíveis.");
+      }
+      
+      // Define a data atual no campo de data da aba de divergência (isso não depende do banco)
+      const dataAtual = new Date().toISOString().split('T')[0];
+      const campoData = document.getElementById('data');
+      if (campoData) {
+        campoData.value = dataAtual;
+      }
+      
+      // Fechar dropdown quando clica fora
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.endereco-selector')) {
+          document.querySelectorAll('.endereco-lista').forEach(lista => {
+            lista.style.display = 'none';
+          });
+        }
+      });
+      
+      // Detectar cliques no formulário de divergência
+      const divergenciaForm = document.getElementById('divergenciaForm');
+      if (divergenciaForm) {
+        divergenciaForm.addEventListener('click', function(e) {
+          console.log("Clique detectado no formulário de divergência:", e.target.tagName, e.target.id);
+        });
+      }
+      
+      // Adicionar evento para carregar listas quando a aba de divergência for selecionada
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function(event) {
+          if (this.textContent.trim() === 'Divergência') {
+            console.log("Tab Divergência clicada");
+            
+            // Forçar renderização adequada da aba antes de trabalhar com o formulário
+            setTimeout(() => {
+              // Chamar carregamento de listas com um atraso para garantir que a aba está visível
+              carregarListas();
+            }, 100);
+          }
+        });
+      });
+      
+      // Adicionar event listener para fechar o dropdown quando clicar fora
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.endereco-selector')) {
+          document.querySelectorAll('.endereco-lista').forEach(lista => {
+            lista.style.display = 'none';
+          });
+        }
+      });
+      
+      // Adicionar event listener para navegação por teclado
+      document.addEventListener('keydown', function(e) {
+        // Verifica se alguma lista de endereços está visível
+        const listaVisivel = document.querySelector('.endereco-lista[style*="display: block"]');
+        if (!listaVisivel) return;
+        
+        const itens = listaVisivel.querySelectorAll('.endereco-item');
+        if (itens.length === 0) return;
+        
+        const inputAtivo = document.activeElement;
+        let itemAtivo = listaVisivel.querySelector('.endereco-item.active');
+        let indexAtivo = -1;
+        
+        if (itemAtivo) {
+          for (let i = 0; i < itens.length; i++) {
+            if (itens[i] === itemAtivo) {
+              indexAtivo = i;
+              break;
+            }
+          }
+        }
+        
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            if (itemAtivo) itemAtivo.classList.remove('active');
+            indexAtivo = (indexAtivo + 1) % itens.length;
+            itens[indexAtivo].classList.add('active');
+            listaVisivel.scrollTop = itens[indexAtivo].offsetTop - listaVisivel.offsetHeight / 2;
+            break;
+            
+          case 'ArrowUp':
+            e.preventDefault();
+            if (itemAtivo) itemAtivo.classList.remove('active');
+            indexAtivo = (indexAtivo - 1 + itens.length) % itens.length;
+            itens[indexAtivo].classList.add('active');
+            listaVisivel.scrollTop = itens[indexAtivo].offsetTop - listaVisivel.offsetHeight / 2;
+            break;
+            
+          case 'Enter':
+            e.preventDefault();
+            if (itemAtivo) {
+              itemAtivo.click();
+            }
+            break;
+            
+          case 'Escape':
+            e.preventDefault();
+            listaVisivel.style.display = 'none';
+            break;
+        }
+      });
+      
+      console.log("Inicialização da página concluída");
+    });
+
+    // Fechar o modal quando clicar fora dele ou pressionar ESC
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('novoRegistroModal');
+      if (e.target === modal) {
+        fecharModal();
+      }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('novoRegistroModal');
+        if (modal.classList.contains('show')) {
+          fecharModal();
+        }
+      }
+    });
+
+  function salvarObservacao() {        
+      
+      // Obter valores dos campos na nova ordem
+      const cdMercadoria = document.getElementById('codMercadoriaObs').value.trim();
+      const cf = document.getElementById('cfObs').value.trim();
+      const final = document.getElementById('finalObs').value.trim();
+      const descricao = document.getElementById('descricaoObs').value.trim();
+      const endereco = document.getElementById('enderecoObs').value.trim();      
+      const motivoObs = document.getElementById('motivoObs').value.trim();
+      const data = document.getElementById('dataObs').value;
+      
+      console.log("Valores obtidos dos campos:", {
+        cdMercadoria, cf, final, descricao, endereco, motivoObs, data
+      });
+      
+      const mensagemRetorno = document.getElementById('mensagemRetorno');
+      mensagemRetorno.className = '';
+      mensagemRetorno.textContent = '';     
+
+      // Preparar dados para salvar
+      const dadosObs = {        
+        CdMercadoria: cdMercadoria,
+        Descricao: descricao,
+        CF: cf,
+        Final: final,
+        Endereco: endereco,
+        Data: data,
+        MotivoObs: motivoObs
+      };     
+
+      // Desabilitar botão durante processamento
+      const btnSalvar = document.querySelector('.btn-obs');
+      const textoOriginal = btnSalvar.innerHTML;
+      btnSalvar.disabled = true;
+      btnSalvar.innerHTML = '<span class="save-icon">⏳</span> Salvando...';
+      
+      console.log("Enviando dados para o servidor:", dadosObs);
+
+      // Chamada ao servidor
+      google.script.run
+        .withSuccessHandler(function(resposta) {
+          console.log("Resposta de sucesso do servidor:", resposta);
+          mensagemRetorno.textContent = resposta;
+          mensagemRetorno.classList.add('mensagem-sucesso');
+          
+          // Limpar o formulário
+          // Seleciona todos os inputs dentro da div com id "obs-texto"
+          document.querySelectorAll('#obs-texto input').forEach(input => {
+            input.value = '';
+          });
+
+          
+          // Definir a data atual
+          document.getElementById('dataObs').value = new Date().toISOString().split('T')[0];
+          
+          // Reabilitar o botão
+          btnSalvar.disabled = false;
+          btnSalvar.innerHTML = textoOriginal;        
+        })
+        .withFailureHandler(function(erro) {
+          console.error("Erro retornado pelo servidor:", erro);
+          mensagemRetorno.textContent = 'Erro: ' + (erro.message || erro);
+          mensagemRetorno.classList.add('mensagem-erro');
+          
+          // Reabilitar o botão
+          btnSalvar.disabled = false;
+          btnSalvar.innerHTML = textoOriginal;
+        })
+        .SalvarObservacao(dadosObs);        
+    }    
+  </script>
+</body>
+</html>
