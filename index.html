@@ -21,6 +21,14 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
+    .subtab-container {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      background: #ff8c00;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-top: 0;
+    }
+
     .tab {
       padding: 14px 20px;
       cursor: pointer;
@@ -32,6 +40,16 @@
       color: #ffffff;
       position: relative;
       overflow: hidden;
+    }
+
+    .tab.main-tab {
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    .tab.subtab {
+      font-weight: bold;
+      font-size: 20px;
     }
 
     .tab.active {
@@ -64,6 +82,14 @@
     }
 
     .tab-content.active {
+      display: block;
+    }
+
+    .subtab-content {
+      display: none;
+    }
+
+    .subtab-content.active {
       display: block;
     }
 
@@ -531,15 +557,29 @@
 
 <body>
 
+  <!-- Main tabs -->
   <div class="tab-container">
-    <button class="tab active" onclick="openTab(event, 'auditoria')" style="font-weight: bold; font-size: 20px;">Auditoria</button>
-    <button class="tab" onclick="openTab(event, 'verificacao')"style="font-weight: bold; font-size: 20px;">Verificação</button>
-    <button class="tab" onclick="openTab(event, 'divergencia')" style="font-weight: bold; font-size: 20px;">Divergência</button>
-    <button class="tab" onclick="openTab(event, 'observacao')" style="font-weight: bold; font-size: 20px;">Observação</button> 
+    <button class="tab main-tab active" onclick="openMainTab(event, 'auditoria-estoque')">Auditoria de Estoque</button>
+    <button class="tab main-tab" onclick="openMainTab(event, 'auditoria-smartphones')">Auditoria Smartphones</button>
   </div>
 
-  <!-- Conteúdo das abas -->
-  <div id="auditoria" class="tab-content active">   
+  <!-- Sub-tabs for Auditoria de Estoque -->
+  <div id="subtab-container-estoque" class="subtab-container" style="display: flex;">
+    <button class="tab subtab active" onclick="openSubTab(event, 'auditoria')">Auditoria</button>
+    <button class="tab subtab" onclick="openSubTab(event, 'verificacao')">Verificação</button>
+    <button class="tab subtab" onclick="openSubTab(event, 'divergencia')">Divergência</button>
+    <button class="tab subtab" onclick="openSubTab(event, 'observacao')">Observação</button>
+  </div>
+
+  <!-- Sub-tabs for Auditoria Smartphones -->
+  <div id="subtab-container-smartphones" class="subtab-container" style="display: none;">
+    <button class="tab subtab active" onclick="openSubTab(event, 'auditoria-smart')">Auditoria</button>
+    <button class="tab subtab" onclick="openSubTab(event, 'verificacao-smart')">Verificação</button>
+    <button class="tab subtab" onclick="openSubTab(event, 'observacao-smart')">Observação</button>
+  </div>
+
+  <!-- Conteúdo das abas - Auditoria de Estoque -->
+  <div id="auditoria" class="tab-content subtab-content active">   
     <div class="container">
       <div class="section">
         <h3>Bipe os Códigos</h3>
@@ -580,7 +620,7 @@
   </div>
 
   <!-- Parte da Aba Verificação -->
-  <div id="verificacao" class="tab-content">   
+  <div id="verificacao" class="tab-content subtab-content">   
     <div class="endereco-selector" style="max-width: 500px; margin: 0 auto 20px auto;">
       <label for="enderecoVerificacao" style="display: block; margin-bottom: 8px; font-weight: 500; color: white;">Digite ou selecione o Endereço:</label>
       <input type="text" id="enderecoVerificacao" placeholder="Digite ou selecione o endereço" autocomplete="off" 
@@ -604,7 +644,7 @@
     </table>
   </div>
 
-  <div id="observacao" class="tab-content">
+  <div id="observacao" class="tab-content subtab-content">
     <div class="obs-linha">
     <h2>Informe o produto</h2>    
       <div id="obs-texto">
@@ -629,7 +669,7 @@
   </div>
 
   <!-- Aba Divergência -->
-  <div id="divergencia" class="tab-content">
+  <div id="divergencia" class="tab-content subtab-content">
     <div class="form-divergencia">
       <h2>Registrar Divergência</h2>
       <form id="divergenciaForm">
@@ -696,6 +736,34 @@
           <span class="save-icon">📋</span> Salvar Divergência
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Conteúdo das abas - Auditoria Smartphones -->
+  <div id="auditoria-smart" class="tab-content subtab-content" style="display:none;">
+    <div class="container">
+      <div class="section">
+        <h3>Auditoria Smartphones - Em Desenvolvimento</h3>
+        <p style="color: white;">Esta funcionalidade está em desenvolvimento.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="verificacao-smart" class="tab-content subtab-content" style="display:none;">
+    <div class="container">
+      <div class="section">
+        <h3>Verificação Smartphones - Em Desenvolvimento</h3>
+        <p style="color: white;">Esta funcionalidade está em desenvolvimento.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="observacao-smart" class="tab-content subtab-content" style="display:none;">
+    <div class="container">
+      <div class="section">
+        <h3>Observação Smartphones - Em Desenvolvimento</h3>
+        <p style="color: white;">Esta funcionalidade está em desenvolvimento.</p>
+      </div>
     </div>
   </div>
 
@@ -811,36 +879,78 @@
       return true;
     }
 
-    function openTab(event, tabId) {
-      console.log("Abrindo aba:", tabId);
+    function openMainTab(event, mainTabId) {
+      console.log("Abrindo aba principal:", mainTabId);
       
-      // 1. Esconde todas as abas e remove classes active
-      var contents = document.querySelectorAll('.tab-content');
-      contents.forEach(function(content) {
+      // Remove active de todas as abas principais
+      document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      
+      // Esconde todos os containers de sub-abas
+      document.getElementById('subtab-container-estoque').style.display = 'none';
+      document.getElementById('subtab-container-smartphones').style.display = 'none';
+      
+      // Esconde todos os conteúdos de sub-abas
+      document.querySelectorAll('.subtab-content').forEach(content => {
         content.classList.remove('active');
         content.style.display = 'none';
       });
+      
+      // Mostra o container de sub-abas correto e a primeira sub-aba
+      if (mainTabId === 'auditoria-estoque') {
+        document.getElementById('subtab-container-estoque').style.display = 'flex';
+        // Ativa a primeira sub-aba de estoque
+        const firstSubtab = document.querySelector('#subtab-container-estoque .subtab');
+        if (firstSubtab) {
+          document.querySelectorAll('#subtab-container-estoque .subtab').forEach(tab => tab.classList.remove('active'));
+          firstSubtab.classList.add('active');
+          const firstTabId = firstSubtab.getAttribute('onclick').match(/'(.+?)'/)[1];
+          openSubTab(null, firstTabId);
+        }
+      } else if (mainTabId === 'auditoria-smartphones') {
+        document.getElementById('subtab-container-smartphones').style.display = 'flex';
+        // Ativa a primeira sub-aba de smartphones
+        const firstSubtab = document.querySelector('#subtab-container-smartphones .subtab');
+        if (firstSubtab) {
+          document.querySelectorAll('#subtab-container-smartphones .subtab').forEach(tab => tab.classList.remove('active'));
+          firstSubtab.classList.add('active');
+          const firstTabId = firstSubtab.getAttribute('onclick').match(/'(.+?)'/)[1];
+          openSubTab(null, firstTabId);
+        }
+      }
+    }
 
-      var tabs = document.querySelectorAll('.tab');
-      tabs.forEach(function(tab) {
-        tab.classList.remove('active');
+    function openSubTab(event, tabId) {
+      console.log("Abrindo sub-aba:", tabId);
+      
+      // Esconde todas as sub-abas de conteúdo
+      document.querySelectorAll('.subtab-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
       });
-
-      // 2. Mostra a aba selecionada e adiciona classe active
+      
+      // Remove active de todas as sub-abas (apenas dentro do container ativo)
+      const activeContainer = document.querySelector('.subtab-container[style*="display: flex"]');
+      if (activeContainer) {
+        activeContainer.querySelectorAll('.subtab').forEach(tab => tab.classList.remove('active'));
+      }
+      
+      // Mostra a sub-aba selecionada
       const tabElement = document.getElementById(tabId);
-      tabElement.classList.add('active');
-      tabElement.style.display = 'block';
+      if (tabElement) {
+        tabElement.classList.add('active');
+        tabElement.style.display = 'block';
+      }
       
-      event.currentTarget.classList.add('active');
+      // Adiciona active no botão clicado
+      if (event) {
+        event.currentTarget.classList.add('active');
+      }
       
-      // 3. Ações específicas por aba
+      // Ações específicas por aba
       if (tabId === 'divergencia') {
         console.log("Carregando interface da aba Divergência");
-        
-        // Carregar listas e garantir que o formulário esteja visível
         carregarListas();
-        
-        // Aplicar foco ao primeiro campo depois de garantir visibilidade
         setTimeout(() => {
           const cdMercadoria = document.getElementById('cdMercadoria');
           if (cdMercadoria) {
@@ -849,6 +959,11 @@
           }
         }, 300);
       }
+    }
+
+    // Manter a função openTab antiga para compatibilidade (apenas redireciona para openSubTab)
+    function openTab(event, tabId) {
+      openSubTab(event, tabId);
     }
 
     function mostrarOpcoes(dropdownId) {
