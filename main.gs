@@ -1,5 +1,5 @@
 function doGet(e) {
-  const htmlTemplate = HtmlService.createTemplateFromFile('index');
+  const htmlTemplate = HtmlService.createTemplateFromFile('interface');
 
   // Carrega Dados da aba "Dados"
   const planilha = SpreadsheetApp.getActiveSpreadsheet();
@@ -7,29 +7,23 @@ function doGet(e) {
   const data = sheetDados.getDataRange().getValues();
   htmlTemplate.dadosBanco = JSON.stringify(data);
 
-  // Gera todos os endereços com tratamento especial para ruas 115–129
-  const enderecos = [];
+  // Busca apenas os endereços existentes na aba "Dados"
+  const colunaEndereco = data.map(row => row[4]); // Supondo que o endereço está na coluna 5 (índice 4)
+  // Remove duplicados e valores vazios
+  let enderecosExistentes = Array.from(new Set(colunaEndereco)).filter(e => e && e !== "ENDEREÇO");
 
-  // Gera endereços das ruas 100 a 129 e 200 a 204
-    const faixasDeRuas = [
-      { inicio: 100, fim: 129, ajustar: (rua) => (rua >= 115 ? rua - 100 : rua) },
-      { inicio: 200, fim: 204, ajustar: (rua) => rua } // Não altera nada
-    ];
+  // Ordena os endereços pela lógica Rua-Andar-Estante-Prateleira
+  enderecosExistentes = enderecosExistentes.sort((a, b) => {
+    // Espera formato: Rua-Andar-Estante-Prateleira
+    const pa = a.split('-').map(Number);
+    const pb = b.split('-').map(Number);
+    for (let i = 0; i < 4; i++) {
+      if (pa[i] !== pb[i]) return pa[i] - pb[i];
+    }
+    return 0;
+  });
 
-    faixasDeRuas.forEach(faixa => {
-      for (let rua = faixa.inicio; rua <= faixa.fim; rua++) {
-        const ruaFormatada = faixa.ajustar(rua);
-        for (let estante = 1; estante <= 46; estante++) {
-          for (let prateleira = 1; prateleira <= 30; prateleira++) {
-            const endereco = `${ruaFormatada}-0-${estante}-${prateleira}`;
-            enderecos.push(endereco);
-          }
-        }
-      }
-    });
-
-
-  htmlTemplate.todosEnderecos = JSON.stringify(enderecos);
+  htmlTemplate.todosEnderecos = JSON.stringify(enderecosExistentes);
 
   return htmlTemplate.evaluate()
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
